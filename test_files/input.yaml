@@ -1,0 +1,47 @@
+server:
+  host: 127.0.0.1
+  ports:
+  - 8080
+  - 8443
+  - 9000
+  admin_email: admin@example.com
+  max_connections: 1000
+  tls_enabled: true
+  certificate_path: "/etc/ssl/server.crt"
+  private_key_path: "/etc/ssl/server.key"
+  timeouts:
+    read: 30s
+    write: 60s
+database:
+  type: postgresql
+  url: postgres://user:password@localhost:5432/mydb
+  connection_pool_size: 20
+  migrations_enabled: true
+  retry_attempts: 5
+logging:
+  level: info
+  output_paths:
+  - "/var/log/app.log"
+  - stdout
+  format: json
+features:
+  new_dashboard: true
+  analytics_enabled: false
+  experimental_widgets:
+  - widget_a
+  - widget_b
+users:
+- id: 1
+  username: alice
+  roles:
+  - admin
+  - editor
+- id: 2
+  username: bob
+  roles:
+  - viewer
+- id: 3
+  username: charlie
+  roles: []
+optional_setting: this is present
+nullable_value: null

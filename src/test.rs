@@ -1,5 +1,19 @@
 use serde::Deserialize;
-use crate::manager::ConfigType;
+use crate::{manager::ConfigType, ConfigManager};
+
+#[derive(Deserialize, Debug, PartialEq)]
+struct SmallTest {
+    configuration: String,
+    testing: String,
+    number_of_test: u8,
+    sub: SubSmallTest
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+struct SubSmallTest {
+    this: String,
+    the: i8
+}
 
 #[derive(Deserialize, Debug, PartialEq)]
 struct Config {
@@ -109,106 +123,119 @@ fn get_full_input_json() -> String {
 }
 
 fn get_full_input_yaml() -> String {
-    String::from(r#"server:
-    host: 127.0.0.1
-    ports:
-        - 8080
-        - 8443
-        - 9000
-    admin_email: admin@example.com
-    max_connections: 1000
-    tls_enabled: true
-    certificate_path: /etc/ssl/server.crt
-    private_key_path: /etc/ssl/server.key
-    timeouts:
-        read: 30s
-        write: 60s
-
-    database:
-    type: postgresql
-    url: postgres://user:password@localhost:5432/mydb
-    connection_pool_size: 20
-    migrations_enabled: true
-    retry_attempts: 5
-
-    logging:
-    level: info
-    output_paths:
-        - /var/log/app.log
-        - stdout
-    format: json
-
-    features:
-    new_dashboard: true
-    analytics_enabled: false
-    experimental_widgets:
-        - widget_a
-        - widget_b
-
-    users:
-    - id: 1
-        username: alice
-        roles:
-        - admin
-        - editor
-    - id: 2
-        username: bob
-        roles:
-        - viewer
-    - id: 3
-        username: charlie
-        roles: []
-
-    optional_setting: this is present
-    nullable_value: null"#)
+    String::from(r#"
+server:
+  host: 127.0.0.1
+  ports:
+  - 8080
+  - 8443
+  - 9000
+  admin_email: admin@example.com
+  max_connections: 1000
+  tls_enabled: true
+  certificate_path: "/etc/ssl/server.crt"
+  private_key_path: "/etc/ssl/server.key"
+  timeouts:
+    read: 30s
+    write: 60s
+database:
+  type: postgresql
+  url: postgres://user:password@localhost:5432/mydb
+  connection_pool_size: 20
+  migrations_enabled: true
+  retry_attempts: 5
+logging:
+  level: info
+  output_paths:
+  - "/var/log/app.log"
+  - stdout
+  format: json
+features:
+  new_dashboard: true
+  analytics_enabled: false
+  experimental_widgets:
+  - widget_a
+  - widget_b
+users:
+- id: 1
+  username: alice
+  roles:
+  - admin
+  - editor
+- id: 2
+  username: bob
+  roles:
+  - viewer
+- id: 3
+  username: charlie
+  roles: []
+optional_setting: this is present
+nullable_value: null"#)
 }
 
-fn get_full_toml_input() -> String {
-    String::from(r#"server = {
-    host = "127.0.0.1",
-    ports = [8080, 8443, 9000],
-    admin_email = "admin@example.com",
-    max_connections = 1000,
-    tls_enabled = true,
-    certificate_path = "/etc/ssl/server.crt",
-    private_key_path = "/etc/ssl/server.key",
-    timeouts = {
-        read = "30s",
-        write = "60s"
-    }
-    }
+fn get_full_input_toml() -> String {
+    String::from(r#"optional_setting = "this is present"
 
-    database = {
-    type = "postgresql",
-    url = "postgres://user:password@localhost:5432/mydb",
-    connection_pool_size = 20,
-    migrations_enabled = true,
-    retry_attempts = 5
-    }
+[server]
+host = "127.0.0.1"
+ports = [ 8_080, 8_443, 9_000 ]
+admin_email = "admin@example.com"
+max_connections = 1_000
+tls_enabled = true
+certificate_path = "/etc/ssl/server.crt"
+private_key_path = "/etc/ssl/server.key"
 
-    logging = {
-    level = "info",
-    output_paths = ["/var/log/app.log", "stdout"],
-    format = "json"
-    }
+  [server.timeouts]
+  read = "30s"
+  write = "60s"
 
-    features = {
-    new_dashboard = true,
-    analytics_enabled = false,
-    experimental_widgets = ["widget_a", "widget_b"]
-    }
+[database]
+type = "postgresql"
+url = "postgres://user:password@localhost:5432/mydb"
+connection_pool_size = 20
+migrations_enabled = true
+retry_attempts = 5
 
-    users = [
-    { id = 1, username = "alice", roles = ["admin", "editor"] },
-    { id = 2, username = "bob", roles = ["viewer"] },
-    { id = 3, username = "charlie", roles = [] }
-    ]
+[logging]
+level = "info"
+output_paths = [ "/var/log/app.log", "stdout" ]
+format = "json"
 
-    optional_setting = "this is present"
-    nullable_value = null"#)
+[features]
+new_dashboard = true
+analytics_enabled = false
+experimental_widgets = [ "widget_a", "widget_b" ]
+
+[[users]]
+id = 1
+username = "alice"
+roles = [ "admin", "editor" ]
+
+[[users]]
+id = 2
+username = "bob"
+roles = [ "viewer" ]
+
+[[users]]
+id = 3
+username = "charlie"
+roles = [ ]"#)
 }
 
-fn get_full_input_deserialized() -> Config {
+fn get_small_expected_output() -> SmallTest {
+    let sub = SubSmallTest {
+        this: String::from("is"),
+        the: 5
+    };
+    SmallTest {
+        configuration: "Config".to_string(),
+        testing: "testing1".to_string(),
+        number_of_test: 1,
+        sub: sub
+    }
+}
+
+fn get_full_expected_output() -> Config {
     Config {
         server: ServerConfig {
             host: "127.0.0.1".to_string(),
@@ -263,35 +290,120 @@ fn get_full_input_deserialized() -> Config {
 }
 
 #[test]
-fn test_json_input() {
-    #[derive(Deserialize, Debug, PartialEq)]
-    struct Test {
-        configuration: String,
-        testing: String,
-        number_of_test: u8
-    }
-    let expected = Test {
-        configuration: "Config".to_string(),
-        testing: "testing1".to_string(),
-        number_of_test: 1
-    };
+fn small_json_test_from_str() {
+    let expected = get_small_expected_output();
 
     let input = r#"{
         "configuration": "Config",
         "testing": "testing1",
-        "number_of_test": 1
+        "number_of_test": 1,
+        "sub": {
+            "this": "is",
+            "the": 5
+        }
     }"#;
-    let output = crate::ConfigManager::new_from_str::<Test>(ConfigType::Json, input).unwrap();
+    let output = crate::ConfigManager::new_from_str::<SmallTest>(ConfigType::Json, input).unwrap();
 
     assert_eq!(output, expected)
 }
 
 #[test]
-fn full_json_test() {
-    let expected = get_full_input_deserialized();
+fn small_yaml_test_from_str() {
+    let expected = get_small_expected_output();
+
+    let input = r#"
+configuration: Config
+testing: testing1
+number_of_test: 1
+sub:
+    this: is
+    the: 5"#;
+    let output = serde_yaml::from_str::<SmallTest>(input).unwrap();
+
+    assert_eq!(output, expected)
+}
+
+#[test]
+fn small_toml_test_from_str() {
+    let expected = get_small_expected_output();
+
+    let input = r#"configuration = "Config"
+testing = "testing1"
+number_of_test = 1
+
+[sub]
+this = "is"
+the = 5"#;
+    let output = ConfigManager::new_from_str::<SmallTest>(ConfigType::Toml, input).unwrap();
+
+    assert_eq!(output, expected)
+}
+
+#[test]
+fn full_json_test_from_str() {
+    let expected = get_full_expected_output();
 
     let input = get_full_input_json();
     let output = crate::ConfigManager::new_from_str::<Config>(ConfigType::Json, &input).unwrap();
+
+    assert_eq!(output, expected)
+}
+
+#[test]
+fn full_yaml_from_str() {
+    let expected = get_full_expected_output();
+
+    let input = get_full_input_yaml();
+    let output = crate::ConfigManager::new_from_str::<Config>(ConfigType::Yaml, &input).unwrap();
+
+    assert_eq!(output, expected)
+}
+
+#[test]
+fn full_toml_from_str() {
+    let expected = get_full_expected_output();
+
+    let input = get_full_input_toml();
+    let output = crate::ConfigManager::new_from_str::<Config>(ConfigType::Toml, &input).unwrap();
+
+    assert_eq!(output, expected)
+}
+
+#[test]
+fn full_json_from_file() {
+    let expected = get_full_expected_output();
+
+    let dir = std::env::current_dir().unwrap();
+    let dir_path = dir.to_str().unwrap();
+    let path = format!("{dir_path}/test_files/input.json");
+
+    let output = ConfigManager::new_from_path::<Config>(ConfigType::Json, path.as_str()).unwrap();
+
+    assert_eq!(output, expected)
+}
+
+#[test]
+fn full_yaml_from_file() {
+    let expected = get_full_expected_output();
+
+    let dir = std::env::current_dir().unwrap();
+    let dir_path = dir.to_str().unwrap();
+    let path = format!("{dir_path}/test_files/input.yaml");
+
+    let output = ConfigManager::new_from_path::<Config>(ConfigType::Yaml, path.as_str()).unwrap();
+
+    assert_eq!(output, expected)
+}
+
+#[test]
+fn full_toml_from_file() {
+    let expected = get_full_expected_output();
+
+    let dir = std::env::current_dir().unwrap();
+    let dir_path = dir.to_str().unwrap();
+    let path = format!("{dir_path}/test_files/input.toml");
+
+    let output = ConfigManager::new_from_path::<Config>(ConfigType::Toml, path.as_str()).unwrap();
 
     assert_eq!(output, expected)
 }

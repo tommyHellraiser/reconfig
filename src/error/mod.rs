@@ -1,4 +1,4 @@
-use std::{fmt::Display, io::Error};
+use std::fmt::Display;
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -11,6 +11,7 @@ pub struct ConfigError {
 pub(crate) enum ErrorCause {
     Init,
     FileOpen,
+    FileFormat,
     Deserializing
 }
 
@@ -25,6 +26,7 @@ impl Display for ErrorCause {
         let content = match self {
             Self::Init => "Init",
             Self::FileOpen => "File Open",
+            Self::FileFormat => "File Format",
             Self::Deserializing => "Deserializing",
         };
         write!(f, "{}", content)
