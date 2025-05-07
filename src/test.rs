@@ -1,18 +1,20 @@
+use std::path::Path;
+
+use crate::{ConfigManager, manager::ConfigType};
 use serde::Deserialize;
-use crate::{manager::ConfigType, ConfigManager};
 
 #[derive(Deserialize, Debug, PartialEq)]
 struct SmallTest {
     configuration: String,
     testing: String,
     number_of_test: u8,
-    sub: SubSmallTest
+    sub: SubSmallTest,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 struct SubSmallTest {
     this: String,
-    the: i8
+    the: i8,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -45,7 +47,7 @@ fn default_tls_enabled() -> bool {
 
 #[derive(Deserialize, Debug, PartialEq)]
 struct TimeoutsConfig {
-    read: String, // You might want to parse this into a Duration later
+    read: String,  // You might want to parse this into a Duration later
     write: String, // Same here
 }
 
@@ -81,7 +83,8 @@ struct User {
 }
 
 fn get_full_input_json() -> String {
-    String::from(r#"{
+    String::from(
+        r#"{
     "server": {
         "host": "127.0.0.1",
         "ports": [8080, 8443, 9000],
@@ -119,11 +122,13 @@ fn get_full_input_json() -> String {
     ],
     "optional_setting": "this is present",
     "nullable_value": null
-    }"#)
+    }"#,
+    )
 }
 
 fn get_full_input_yaml() -> String {
-    String::from(r#"
+    String::from(
+        r#"
 server:
   host: 127.0.0.1
   ports:
@@ -170,11 +175,13 @@ users:
   username: charlie
   roles: []
 optional_setting: this is present
-nullable_value: null"#)
+nullable_value: null"#,
+    )
 }
 
 fn get_full_input_toml() -> String {
-    String::from(r#"optional_setting = "this is present"
+    String::from(
+        r#"optional_setting = "this is present"
 
 [server]
 host = "127.0.0.1"
@@ -219,19 +226,20 @@ roles = [ "viewer" ]
 [[users]]
 id = 3
 username = "charlie"
-roles = [ ]"#)
+roles = [ ]"#,
+    )
 }
 
 fn get_small_expected_output() -> SmallTest {
     let sub = SubSmallTest {
         this: String::from("is"),
-        the: 5
+        the: 5,
     };
     SmallTest {
         configuration: "Config".to_string(),
         testing: "testing1".to_string(),
         number_of_test: 1,
-        sub: sub
+        sub,
     }
 }
 
@@ -302,7 +310,11 @@ fn small_json_test_from_str() {
             "the": 5
         }
     }"#;
-    let output = crate::ConfigManager::new_from_str::<SmallTest>(ConfigType::Json, input).unwrap();
+    let output = ConfigManager::init::<SmallTest>()
+        .configure_from_str(ConfigType::Json, input)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -318,7 +330,11 @@ number_of_test: 1
 sub:
     this: is
     the: 5"#;
-    let output = serde_yaml::from_str::<SmallTest>(input).unwrap();
+    let output = ConfigManager::init::<SmallTest>()
+        .configure_from_str(ConfigType::Yaml, input)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -334,7 +350,11 @@ number_of_test = 1
 [sub]
 this = "is"
 the = 5"#;
-    let output = ConfigManager::new_from_str::<SmallTest>(ConfigType::Toml, input).unwrap();
+    let output = ConfigManager::init::<SmallTest>()
+        .configure_from_str(ConfigType::Toml, input)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -344,7 +364,11 @@ fn full_json_test_from_str() {
     let expected = get_full_expected_output();
 
     let input = get_full_input_json();
-    let output = crate::ConfigManager::new_from_str::<Config>(ConfigType::Json, &input).unwrap();
+    let output = ConfigManager::init::<Config>()
+        .configure_from_str(ConfigType::Json, &input)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -354,7 +378,11 @@ fn full_yaml_from_str() {
     let expected = get_full_expected_output();
 
     let input = get_full_input_yaml();
-    let output = crate::ConfigManager::new_from_str::<Config>(ConfigType::Yaml, &input).unwrap();
+    let output = ConfigManager::init::<Config>()
+        .configure_from_str(ConfigType::Yaml, &input)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -364,7 +392,11 @@ fn full_toml_from_str() {
     let expected = get_full_expected_output();
 
     let input = get_full_input_toml();
-    let output = crate::ConfigManager::new_from_str::<Config>(ConfigType::Toml, &input).unwrap();
+    let output = ConfigManager::init::<Config>()
+        .configure_from_str(ConfigType::Toml, &input)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -374,10 +406,15 @@ fn full_json_from_file() {
     let expected = get_full_expected_output();
 
     let dir = std::env::current_dir().unwrap();
-    let dir_path = dir.to_str().unwrap();
-    let path = format!("{dir_path}/test_files/input.json");
+    let rel = "/test_files/input.json";
+    let full_path = format!("{}{}", dir.display(), rel);
+    let path = Path::new(&full_path);
 
-    let output = ConfigManager::new_from_path::<Config>(ConfigType::Json, path.as_str()).unwrap();
+    let output = ConfigManager::init::<Config>()
+        .configure_from_path(ConfigType::Json, path)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -387,10 +424,15 @@ fn full_yaml_from_file() {
     let expected = get_full_expected_output();
 
     let dir = std::env::current_dir().unwrap();
-    let dir_path = dir.to_str().unwrap();
-    let path = format!("{dir_path}/test_files/input.yaml");
+    let rel = "/test_files/input.yaml";
+    let full_path = format!("{}{}", dir.display(), rel);
+    let path = Path::new(&full_path);
 
-    let output = ConfigManager::new_from_path::<Config>(ConfigType::Yaml, path.as_str()).unwrap();
+    let output = ConfigManager::init::<Config>()
+        .configure_from_path(ConfigType::Yaml, path)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }
@@ -400,10 +442,15 @@ fn full_toml_from_file() {
     let expected = get_full_expected_output();
 
     let dir = std::env::current_dir().unwrap();
-    let dir_path = dir.to_str().unwrap();
-    let path = format!("{dir_path}/test_files/input.toml");
+    let rel = "/test_files/input.toml";
+    let full_path = format!("{}{}", dir.display(), rel);
+    let path = Path::new(&full_path);
 
-    let output = ConfigManager::new_from_path::<Config>(ConfigType::Toml, path.as_str()).unwrap();
+    let output = ConfigManager::init::<Config>()
+        .configure_from_path(ConfigType::Toml, path)
+        .unwrap()
+        .run()
+        .unwrap();
 
     assert_eq!(output, expected)
 }

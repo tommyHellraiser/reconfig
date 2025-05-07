@@ -1,18 +1,18 @@
 use std::fmt::Display;
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConfigError {
     cause: ErrorCause,
-    description: Option<String>
+    description: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ErrorCause {
     Init,
     FileOpen,
-    FileFormat,
-    Deserializing
+    FilePathNotSet,
+    Deserializing,
+    FileWatcherInitError
 }
 
 impl Display for ConfigError {
@@ -26,8 +26,9 @@ impl Display for ErrorCause {
         let content = match self {
             Self::Init => "Init",
             Self::FileOpen => "File Open",
-            Self::FileFormat => "File Format",
+            Self::FilePathNotSet => "File Path Not Set",
             Self::Deserializing => "Deserializing",
+            Self::FileWatcherInitError => "File Watcher Initialization Error",
         };
         write!(f, "{}", content)
     }
@@ -35,10 +36,7 @@ impl Display for ErrorCause {
 
 impl ConfigError {
     pub(crate) fn new(cause: ErrorCause, description: Option<String>) -> Self {
-        Self {
-            cause,
-            description
-        }
+        Self { cause, description }
     }
     pub fn get_cause(&self) -> String {
         self.cause.to_string()
@@ -49,5 +47,3 @@ impl ConfigError {
 }
 
 impl std::error::Error for ConfigError {}
-
-

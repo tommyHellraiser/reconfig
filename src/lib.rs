@@ -1,8 +1,7 @@
-
 mod error;
-mod types;
 mod manager;
 #[cfg(test)]
 mod test;
+mod types;
 
 pub use manager::ConfigManager;
